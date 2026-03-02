@@ -1,0 +1,65 @@
+ID,Fecha,Partido,Pick,Momio,Prob_Modelo,Edge,Stake,Resultado,Ganancia
+761468,,San Diego FC vs St. Louis CITY SC,Match Total Goals → OVER,125.0,0.5454,0.0756,1.82,PENDIENTE,0,soccer,USA.1
+740877,,AFC Bournemouth vs Brentford,Match Total Goals → OVER,-170.0,0.7042,0.0645,2.01,PENDIENTE,0,soccer,ENG.1
+401840890,,Atlético de San Luis vs Mazatlán FC,Match Total Goals → OVER,-140.0,0.6563,0.0707,1.75,PENDIENTE,0,soccer,MEX.1
+761468,,San Diego FC vs St. Louis CITY SC,Match Total Goals → OVER,125.0,0.5454,0.0756,0.91,PENDIENTE,0,soccer,USA.1
+740877,,AFC Bournemouth vs Brentford,Match Total Goals → OVER,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+401840890,,Atlético de San Luis vs Mazatlán FC,Match Total Goals → OVER,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,Match Total Goals → OVER,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,Match Total Goals → UNDER,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,Match Total Goals → UNDER,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,Match Total Goals → OVER,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,Match Total Goals → OVER,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,Match Total Goals → UNDER,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840892,,Puebla vs Tigres UANL,Match Total Goals → OVER,-120.0,0.6423,0.0854,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,Match Total Goals → OVER,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,Match Total Goals → OVER,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,OVER 2.5,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,UNDER 3.5,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,UNDER 2.5,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,OVER 2.5,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,OVER 2.5,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,UNDER 2.5,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840892,,Puebla vs Tigres UANL,OVER 2.5,-120.0,0.6423,0.0854,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,OVER 2.5,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,OVER 2.5,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,OVER 2.5,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,UNDER 3.5,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,UNDER 2.5,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,OVER 2.5,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,OVER 2.5,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,UNDER 2.5,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840891,,Monterrey vs Querétaro,OVER 2.5,-155.0,0.6465,0.0515,0.49,PENDIENTE,0,soccer,MEX.1
+401840892,,Puebla vs Tigres UANL,OVER 2.5,-120.0,0.6423,0.0824,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,OVER 2.5,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,OVER 2.5,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,OVER 2.5,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,UNDER 3.5,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,UNDER 2.5,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,OVER 2.5,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,OVER 2.5,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,UNDER 2.5,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840891,,Monterrey vs Querétaro,OVER 2.5,-155.0,0.6465,0.0515,0.49,PENDIENTE,0,soccer,MEX.1
+401840892,,Puebla vs Tigres UANL,OVER 2.5,-120.0,0.6423,0.0824,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,OVER 2.5,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,OVER 2.5,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,OVER 2.5,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,UNDER 3.5,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,UNDER 2.5,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,OVER 2.5,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,OVER 2.5,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,UNDER 2.5,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840891,,Monterrey vs Querétaro,OVER 2.5,-155.0,0.6465,0.0515,0.49,PENDIENTE,0,soccer,MEX.1
+401840892,,Puebla vs Tigres UANL,OVER 2.5,-120.0,0.6423,0.0824,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,OVER 2.5,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,OVER 2.5,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
+740877,,AFC Bournemouth vs Brentford,OVER 2.5,-170.0,0.7042,0.0645,1.01,PENDIENTE,0,soccer,ENG.1
+740885,,Wolverhampton Wanderers vs Liverpool,UNDER 3.5,-170.0,0.6898,0.0559,0.81,PENDIENTE,0,soccer,ENG.1
+401862714,,Barcelona SC vs Botafogo,UNDER 2.5,-180.0,0.9064,0.1891,3.69,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840890,,Atlético de San Luis vs Mazatlán FC,OVER 2.5,-140.0,0.6563,0.0707,0.88,PENDIENTE,0,soccer,MEX.1
+740880,,Fulham vs West Ham United,OVER 2.5,-130.0,0.6735,0.0857,1.25,PENDIENTE,0,soccer,ENG.1
+401862629,,Carabobo vs Sporting Cristal,UNDER 2.5,-165.0,0.6929,0.0689,0.93,PENDIENTE,0,soccer,CONMEBOL.LIBERTADORES
+401840891,,Monterrey vs Querétaro,OVER 2.5,-155.0,0.6465,0.0515,0.49,PENDIENTE,0,soccer,MEX.1
+401840892,,Puebla vs Tigres UANL,OVER 2.5,-120.0,0.6423,0.0824,1.07,PENDIENTE,0,soccer,MEX.1
+401840894,,América vs FC Juarez,OVER 2.5,-130.0,0.6524,0.0832,1.0,PENDIENTE,0,soccer,MEX.1
+401840893,,Atlas vs Tijuana,OVER 2.5,-120.0,0.6678,0.1007,1.35,PENDIENTE,0,soccer,MEX.1
