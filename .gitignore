@@ -1,2 +1,8 @@
-echo .env >> .gitignore
-echo auditoria_ganancias.csv >> .gitignore
+.env
+auditoria_ganancias.csv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env.local
