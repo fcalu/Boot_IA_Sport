@@ -6,58 +6,59 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
+import psycopg2
 load_dotenv()
+
 
 class SportiaSecureScanner:
 
     def __init__(self):
 
-        self.daily_picks=0
-        self.max_daily_picks=5
-        self.current_day=datetime.utcnow().date()
+        import pytz
+        self.cdmx = pytz.timezone("America/Mexico_City")
 
         self.session = requests.Session()
 
-        retry = Retry(
-            total=3,
-            backoff_factor=1,
-            status_forcelist=[500,502,503,504]
-        )
-
+        retry = Retry(total=3, backoff_factor=1, status_forcelist=[500,502,503,504])
         adapter = HTTPAdapter(max_retries=retry)
 
-        self.session.mount("http://",adapter)
-        self.session.mount("https://",adapter)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
-        self.api_base="https://sportia-api.onrender.com/api/v1"
-        self.espn_api="https://site.api.espn.com/apis/site/v2/sports"
+        self.api_base = "https://sportia-api.onrender.com/api/v1"
+        self.espn_api = "https://site.api.espn.com/apis/site/v2/sports"
 
-        self.token=os.getenv("TELEGRAM_TOKEN")
-        self.chat_id=os.getenv("TELEGRAM_CHAT_ID")
+        self.token = os.getenv("TELEGRAM_TOKEN")
+        self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
         if not self.token or not self.chat_id:
             raise ValueError("Faltan TELEGRAM_TOKEN o TELEGRAM_CHAT_ID")
+        # =========================
+        # DB (Railway PostgreSQL)
+        # =========================
+        self.conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        self.cursor = self.conn.cursor()
 
-        self.stake_base=10
-        self.kelly_multiplier=0.25
+        self._init_db()
 
-        self.history_file="auditoria_ganancias.csv"
+        self.stake_base = 10
+        self.kelly_multiplier = 0.25
 
-        self.sent_ids=set()
-        self.sent_matches=set()
+        self.history_file = "auditoria_ganancias.csv"
 
-        # CONTROL DE PICKS DIARIOS
-        self.daily_picks=0
-        self.max_daily_picks=5
-        self.current_day=datetime.utcnow().date()
+        self.sent_ids = set()
 
+        self.daily_picks = 0
+        self.max_daily_picks = 12  # 🔥 subido para fusión
+
+        self.current_day = datetime.utcnow().date()
+        self.last_report_day = None
 
         self._init_history()
         self._load_sent_ids()
 
-        self.sports_config={
-            "soccer":["eng.1","esp.1","ger.1","ita.1","mex.1"]
+        self.sports_config = {
+            "soccer": ["eng.1","esp.1","ger.1","ita.1","mex.1"]
         }
 
     # =====================================================
@@ -66,57 +67,68 @@ class SportiaSecureScanner:
 
     def _init_history(self):
 
-        header=[
-            "ID","Fecha","Partido","Pick","Momio",
+        header = [
+            "ID","Fecha","Fecha_Partido","Hora_Partido","Partido","Pick","Tipo","Momio",
             "Prob_Modelo","Edge","Stake",
             "Resultado","Ganancia_Neta","Deporte","Liga",
-            "Momio_Inicial","Timestamp_Pick"
+            "Timestamp"
         ]
 
         if not os.path.exists(self.history_file):
-
             with open(self.history_file,"w",newline="",encoding="utf-8") as f:
                 csv.writer(f).writerow(header)
 
     def _load_sent_ids(self):
 
-        if not os.path.exists(self.history_file):
-            return
+        try:
+            self.cursor.execute("SELECT id, pick FROM picks")
 
-        with open(self.history_file,newline="",encoding="utf-8") as f:
-
-            reader=csv.DictReader(f)
-
-            for row in reader:
-
-                key=f"{row['ID']}_{row['Pick']}"
+            for row in self.cursor.fetchall():
+                key = f"{row[0]}_{row[1]}".lower()
                 self.sent_ids.add(key)
+
+        except:
+            pass
+
+    def _save_pick(self,match,match_date,match_time,pick,tipo,odds,prob,edge,stake):
+    
+        self.cursor.execute("""
+            INSERT INTO picks VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (
+            str(match["event_id"]),
+            datetime.utcnow().strftime("%Y-%m-%d"),
+            match_date,
+            match_time,
+            f"{match['home']} vs {match['away']}",
+            pick,
+            tipo,
+            odds,
+            round(prob,4),
+            round(edge,4),
+            round(stake,2),
+            "PENDIENTE",
+            0,
+            "soccer",
+            match.get("league"),
+            datetime.utcnow().isoformat()
+        ))
+
+        self.conn.commit()
 
     # =====================================================
     # MATH
     # =====================================================
 
     def american_to_decimal(self,odds):
-
-        if odds>0:
-            return 1+odds/100
-
-        return 1+100/abs(odds)
+        return 1 + (odds/100 if odds>0 else 100/abs(odds))
 
     def implied_prob(self,odds):
-
-        if odds>0:
-            return 100/(odds+100)
-
-        return abs(odds)/(abs(odds)+100)
+        return 100/(odds+100) if odds>0 else abs(odds)/(abs(odds)+100)
 
     def kelly_fraction(self,prob,decimal_odds):
-
-        b=decimal_odds-1
-
-        if b<=0:
+        b = decimal_odds - 1
+        if b <= 0:
             return 0
-
         return max((b*prob-(1-prob))/b,0)
 
     # =====================================================
@@ -126,7 +138,6 @@ class SportiaSecureScanner:
     def _safe_request(self,method,url,payload=None):
 
         try:
-
             if method=="POST":
                 r=self.session.post(url,json=payload,timeout=25)
             else:
@@ -141,43 +152,12 @@ class SportiaSecureScanner:
         return None
 
     # =====================================================
-    # MATCH TIME
-    # =====================================================
-
-    def _format_match_time(self,match):
-
-        try:
-
-            date_str=match.get("date") or match.get("start_time")
-
-            if not date_str:
-                return None,None
-
-            dt=datetime.fromisoformat(date_str.replace("Z",""))
-
-            now=datetime.utcnow()
-
-            if dt>now+timedelta(days=2):
-                return None,None
-
-            if dt<now:
-                return None,None
-
-            dt_local=dt-timedelta(hours=6)
-
-            return dt,dt_local.strftime("%d %b %H:%M")
-
-        except:
-            return None,None
-
-    # =====================================================
     # TELEGRAM
     # =====================================================
 
     def _send_telegram(self,msg):
 
         try:
-
             self.session.post(
                 f"https://api.telegram.org/bot{self.token}/sendMessage",
                 json={
@@ -186,130 +166,36 @@ class SportiaSecureScanner:
                     "parse_mode":"Markdown"
                 }
             )
-
         except Exception as e:
             print("Telegram error:",e)
 
-    # =====================================================
-    # RESULT CHECK (ESPN)
-    # =====================================================
+    def convert_to_cdmx(self, utc_time):
+    
+        try:
+            if not utc_time:
+                return "N/A", "Hora N/D"
 
-    def check_results(self):
+            # 🔥 FIX ISO ZULU
+            utc_time = utc_time.replace("Z", "+00:00")
 
-        if not os.path.exists(self.history_file):
-            return
+            dt = datetime.fromisoformat(utc_time)
 
-        updated=[]
-        settled=0
-        session_profit=0
+            if dt.tzinfo is None:
+                dt = pytz.utc.localize(dt)
 
-        with open(self.history_file,newline="",encoding="utf-8") as f:
-            rows=list(csv.DictReader(f))
+            local = dt.astimezone(self.cdmx)
 
-        for row in rows:
+            return local.strftime("%Y-%m-%d"), local.strftime("%d %b %H:%M")
 
-            if row["Resultado"]!="PENDIENTE":
-                updated.append(row)
-                continue
-
-            sport=row.get("Deporte","soccer")
-            league=row.get("Liga","mex.1")
-
-            res=self._safe_request(
-                "GET",
-                f"{self.espn_api}/{sport}/{league}/summary?event={row['ID']}"
-            )
-
-            if not res:
-                updated.append(row)
-                continue
-
-            try:
-
-                event=res["header"]["competitions"][0]
-                status=event["status"]["type"]["state"]
-
-                if status!="post":
-                    updated.append(row)
-                    continue
-
-                home=int(event["competitors"][0]["score"])
-                away=int(event["competitors"][1]["score"])
-
-                total=home+away
-
-                pick=row["Pick"].lower()
-
-                stake=float(row["Stake"])
-                odds=float(row["Momio"])
-
-                win=False
-
-                if "over" in pick:
-                    line=2.5
-                    win=total>line
-
-                elif "btts" in pick:
-                    win=(home>0 and away>0)
-
-                elif "home" in pick:
-                    win=home>away
-
-                elif "away" in pick:
-                    win=away>home
-
-                if win:
-
-                    profit=stake*(self.american_to_decimal(odds)-1)
-
-                    row["Resultado"]="GANADA"
-                    row["Ganancia_Neta"]=round(profit,2)
-
-                    session_profit+=profit
-
-                else:
-
-                    row["Resultado"]="PERDIDA"
-                    row["Ganancia_Neta"]=-stake
-
-                    session_profit-=stake
-
-                settled+=1
-
-            except:
-                pass
-
-            updated.append(row)
-
-        if settled>0:
-
-            with open(self.history_file,"w",newline="",encoding="utf-8") as f:
-
-                writer=csv.DictWriter(f,fieldnames=updated[0].keys())
-                writer.writeheader()
-                writer.writerows(updated)
-
-            self._send_telegram(
-f"""📊 RESULTADOS ACTUALIZADOS
-
-Partidos liquidados: {settled}
-
-Profit sesión: {session_profit:.2f}u"""
-            )
+        except Exception as e:
+            print("Error fecha:", utc_time, e)
+            return "N/A", "Hora N/D"
 
     # =====================================================
-    # SCANNER
+    # SCANNER FUSIONADO
     # =====================================================
 
     def scan_all(self):
-    
-        # ===============================
-        # RESET DIARIO DE PICKS
-        # ===============================
-
-        if not hasattr(self,"current_day"):
-            self.current_day=datetime.utcnow().date()
-            self.daily_picks=0
 
         if datetime.utcnow().date()!=self.current_day:
             self.current_day=datetime.utcnow().date()
@@ -329,283 +215,371 @@ Profit sesión: {session_profit:.2f}u"""
 
             for match in matches:
 
-                # ===============================
-                # LIMITE DE PICKS DIARIOS
-                # ===============================
-
-                if self.daily_picks>=5:
-                    print("⚠️ Límite diario de picks alcanzado")
+                if self.daily_picks>=self.max_daily_picks:
                     return
+                match_date, match_time = self.convert_to_cdmx(
+                        match.get("start_time") or match.get("date")
+                    )
+                payload={
+                    "sport":sport,
+                    "league":match.get("league",sport),
+                    "event_id":str(match["event_id"]),
+                    "home_team":match["home"],
+                    "away_team":match["away"]
+                }
+
+                pred=self._safe_request(
+                    "POST",
+                    f"{self.api_base}/ai/predict",
+                    payload
+                )
+
+                if not pred:
+                    continue
+
+                for prop in pred.get("player_props",[]):
+
+                    if not prop.get("is_active"):
+                        continue
+
+                    if prop.get("type")!="total_goals":
+                        continue
+
+                    line=prop.get("line")
+
+                    # ======================
+                    # OVER
+                    # ======================
+                    over_prob=prop.get("model_prob_over")
+                    over_odds=prop.get("over_odds")
+
+                    if over_prob and over_odds:
+
+                        market=self.implied_prob(over_odds)
+                        edge=over_prob-market
+
+                        tipo=None
+
+                        # 🔵 SEGURO
+                        if over_prob>=0.60 and edge>=0.04:
+                            tipo="SEGURO"
+
+                        # 🔴 AGRESIVO
+                        elif edge>=0.05:
+                            tipo="AGRESIVO"
+
+                        if tipo:
+
+                            pick=f"OVER {line}"
+                            key=f"{match['event_id']}_{pick}".lower()
+
+                            if key not in self.sent_ids:
+
+                                stake=self.kelly_fraction(
+                                    over_prob,
+                                    self.american_to_decimal(over_odds)
+                                )*self.kelly_multiplier*self.stake_base
+
+                                if stake<0.2:
+                                    continue
+
+                                msg=f"""
+🔥 SPORTIA FUSION
+
+🏆 {match['home']} vs {match['away']}
+🕒 {match_time} (CDMX)
+📌 {pick} ({tipo})
+💰 {over_odds}
+
+📊 Model: {over_prob*100:.1f}%
+📈 Edge: +{edge*100:.2f}%
+
+💎 Stake: {stake:.2f}u
+"""
+
+                                self._send_telegram(msg)
+
+                                self._save_pick(
+                                                match,
+                                                match_date,
+                                                match_time,
+                                                pick,
+                                                tipo,
+                                                over_odds,
+                                                over_prob,
+                                                edge,
+                                                stake
+                                            )
+
+                                self.sent_ids.add(key)
+                                self.daily_picks+=1
+
+                    # ======================
+                    # UNDER (solo seguro)
+                    # ======================
+                    under_prob=prop.get("model_prob_under")
+                    under_odds=prop.get("under_odds")
+
+                    if under_prob and under_odds:
+
+                        market=self.implied_prob(under_odds)
+                        edge=under_prob-market
+
+                        if under_prob>=0.60 and edge>=0.04:
+
+                            pick=f"UNDER {line}"
+                            key=f"{match['event_id']}_{pick}".lower()
+
+                            if key not in self.sent_ids:
+
+                                stake=self.kelly_fraction(
+                                    under_prob,
+                                    self.american_to_decimal(under_odds)
+                                )*self.kelly_multiplier*self.stake_base
+
+                                msg=f"""
+🧊 SPORTIA SAFE
+
+🏆 {match['home']} vs {match['away']}
+🕒 {match_time} (CDMX)
+📌 {pick}
+💰 {under_odds}
+
+📊 Model: {under_prob*100:.1f}%
+📈 Edge: +{edge*100:.2f}%
+
+💎 Stake: {stake:.2f}u
+"""
+
+                                self._send_telegram(msg)
+
+                                self._save_pick(
+                                            match,
+                                            match_date,
+                                            match_time,
+                                            pick,
+                                            "SEGURO",
+                                            under_odds,
+                                            under_prob,
+                                            edge,
+                                            stake
+                                        )
+
+                                self.sent_ids.add(key)
+                                self.daily_picks+=1
+
+    def _init_db(self):
+    
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS picks (
+            id TEXT,
+            fecha TEXT,
+            fecha_partido TEXT,
+            hora_partido TEXT,
+            partido TEXT,
+            pick TEXT,
+            tipo TEXT,
+            momio REAL,
+            prob REAL,
+            edge REAL,
+            stake REAL,
+            resultado TEXT,
+            ganancia REAL,
+            deporte TEXT,
+            liga TEXT,
+            timestamp TEXT
+        )
+        """)
+
+        self.conn.commit()
+
+    # =====================================================
+    # LIQUIDACIÓN (MEJORADA)
+    # =====================================================
+
+    def resolve_finished_matches(self):
+    
+        if not os.path.exists(self.history_file):
+            return
+
+        rows = []
+
+        with open(self.history_file, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+
+            for row in reader:
+
+                # 🔒 Solo procesar pendientes
+                if row["Resultado"] != "PENDIENTE":
+                    rows.append(row)
+                    continue
+
+                event_id = row["ID"]
+
+                url = f"{self.espn_api}/soccer/all/scoreboard?event={event_id}"
+                data = self._safe_request("GET", url)
+
+                if not data:
+                    rows.append(row)
+                    continue
+
+                events = data.get("events", [])
+                if not events:
+                    rows.append(row)
+                    continue
 
                 try:
+                    comp = events[0]["competitions"][0]
 
-                    dt,match_time=self._format_match_time(match)
+                    status_info = comp.get("status", {}).get("type", {})
+                    status = status_info.get("state")
+                    completed = status_info.get("completed")
 
-                    if match_time is None:
+                    home_score = comp["competitors"][0].get("score")
+                    away_score = comp["competitors"][1].get("score")
+
+                    # ==========================================
+                    # 🔒 VALIDACIONES FUERTES (ANTI ERRORES ESPN)
+                    # ==========================================
+
+                    # 1. Debe estar terminado
+                    if status != "post":
+                        rows.append(row)
                         continue
 
-                    match_id=match["event_id"]
-
-                    if match_id in self.sent_matches:
+                    # 2. Debe estar confirmado como completado
+                    if not completed:
+                        rows.append(row)
                         continue
 
-                    # ===============================
-                    # FILTRO DE LIGAS DEBILES
-                    # ===============================
-
-                    weak_leagues=["bra.1", "usa.nwsl", "eng.2"]
-
-                    if match.get("league") in weak_leagues:
+                    # 3. Scores deben existir
+                    if home_score is None or away_score is None:
+                        rows.append(row)
                         continue
 
-                    payload={
-                        "sport":sport,
-                        "league":match.get("league",sport),
-                        "event_id":str(match_id),
-                        "home_team":match["home"],
-                        "away_team":match["away"]
-                    }
+                    home = int(home_score)
+                    away = int(away_score)
 
-                    pred=self._safe_request(
-                        "POST",
-                        f"{self.api_base}/ai/predict",
-                        payload
-                    )
-
-                    if not pred:
+                    # 4. Evitar falsos 0-0 (muy común en ESPN prematch bug)
+                    if home == 0 and away == 0:
+                        rows.append(row)
                         continue
 
-                    odds_data=pred.get("odds",{})
+                    # ==========================================
+                    # 🔢 EVALUACIÓN DEL PICK
+                    # ==========================================
 
-                    home_odds=odds_data.get("home_moneyline")
-                    away_odds=odds_data.get("away_moneyline")
-                    over_odds=odds_data.get("over_odds")
+                    total = home + away
+                    pick = row["Pick"].lower()
 
-                    for prop in pred.get("player_props",[]):
+                    try:
+                        line = float(pick.split()[-1])
+                    except:
+                        rows.append(row)
+                        continue
 
-                        prob=None
-                        edge=None
-                        odds=None
-                        pick=None
+                    win = False
 
-                        prop_type=prop.get("type")
+                    if "over" in pick:
+                        win = total > line
 
-                        confidence=prop.get("confidence",0)
+                    elif "under" in pick:
+                        win = total < line
 
-                        if confidence<60:
-                            continue
+                    stake = float(row["Stake"])
+                    odds = float(row["Momio"])
 
-                        # ===============================
-                        # OVER 2.5
-                        # ===============================
-
-                        if prop_type=="total_goals":
-
-                            prob=prop.get("model_prob_over")
-                            edge=prop.get("edge_over")
-                            odds=over_odds
-                            pick="OVER 2.5"
-
-                            if prob is None or prob<0.63:
-                                continue
-
-                        # ===============================
-                        # BTTS
-                        # ===============================
-
-                        elif prop_type=="btts":
-
-                            prob=prop.get("model_prob_yes")
-                            odds=over_odds
-                            pick="BTTS YES"
-
-                            if prob is None or prob<0.60:
-                                continue
-
-                            edge=prob-self.implied_prob(odds)
-
-                        # ===============================
-                        # HOME ML
-                        # ===============================
-
-                        elif prop_type=="moneyline_home":
-
-                            prob=prop.get("model_prob")
-                            edge=prop.get("edge")
-                            odds=home_odds
-                            pick="HOME ML"
-
-                            if prob is None or prob<0.58:
-                                continue
-
-                        # ===============================
-                        # AWAY ML
-                        # ===============================
-
-                        elif prop_type=="moneyline_away":
-
-                            prob=prop.get("model_prob")
-                            edge=prop.get("edge")
-                            odds=away_odds
-                            pick="AWAY ML"
-
-                            if prob is None or prob<0.55:
-                                continue
-
-                        else:
-                            continue
-
-                        if odds is None:
-                            continue
-
-                        # ===============================
-                        # FILTRO ODDS PELIGROSOS
-                        # ===============================
-
-                        if odds<-300:
-                            continue
-
-                        if odds>350:
-                            continue
-
-                        if edge is None:
-                            edge=prob-self.implied_prob(odds)
-
-                        # ===============================
-                        # FILTRO EDGE
-                        # ===============================
-
-                        if edge<0.05 or edge>0.20:
-                            continue
-
-                        dec_odds=self.american_to_decimal(odds)
-
-                        stake=self.kelly_fraction(
-                            prob,
-                            dec_odds
-                        )*self.kelly_multiplier*self.stake_base
-
-                        if stake<0.15:
-                            continue
-
-                        key=f"{match_id}_{pick}"
-
-                        if key in self.sent_ids:
-                            continue
-
-                        # ===============================
-                        # TIMESTAMP PICK
-                        # ===============================
-
-                        pick_timestamp=datetime.utcnow().isoformat()
-
-                        # ===============================
-                        # MENSAJE PREMIUM
-                        # ===============================
-
-                        market_prob=self.implied_prob(odds)
-
-                        message=(
-
-    f"🔥 SPORTIA VALUE BET\n\n"
-    f"🏆 {match['home']} vs {match['away']}\n"
-    f"🕒 {match_time} (CDMX)\n\n"
-
-    f"📌 PICK: {pick}\n"
-    f"💰 Odds: {odds}\n\n"
-
-    f"📊 Model Probability: {prob*100:.1f}%\n"
-    f"📉 Market Probability: {market_prob*100:.1f}%\n"
-    f"📈 Edge: +{edge*100:.1f}%\n"
-
-    f"💎 Stake: {stake:.2f}u\n\n"
-
-    f"━━━━━━━━━━━━━━\n"
-    f"🤖 Sportia AI Syndicate\n"
-    f"📊 Edge Model Engine"
-
-                        )
-
-                        self._send_telegram(message)
-
-                        self.sent_ids.add(key)
-                        self.sent_matches.add(match_id)
-
-                        self.daily_picks+=1
-
-                        self._save_to_csv(
-                            match,
-                            pick,
-                            odds,
-                            prob,
-                            edge,
-                            stake,
-                            sport
-                        )
-
-                        break
+                    if win:
+                        profit = stake * (self.american_to_decimal(odds) - 1)
+                        row["Resultado"] = "GANADA"
+                        row["Ganancia_Neta"] = round(profit, 2)
+                    else:
+                        row["Resultado"] = "PERDIDA"
+                        row["Ganancia_Neta"] = -stake
 
                 except Exception as e:
+                    print(f"Error procesando {row['ID']}: {e}")
 
-                    print("Match error:",e)
+                rows.append(row)
 
+        # 🔄 REESCRIBIR CSV
+        with open(self.history_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+
+        print("✅ Liquidación segura aplicada")
 
     # =====================================================
-    # SAVE CSV
+    # REPORTE SEMANAL PRO
     # =====================================================
 
-    def _save_to_csv(self,match,pick,odds,prob,edge,stake,sport):
+    def weekly_report(self):
 
-        with open(self.history_file,"a",newline="",encoding="utf-8") as f:
+        total_stake=0
+        total_profit=0
+        wins=0
+        losses=0
 
-            csv.writer(f).writerow([
-                match["event_id"],
-                datetime.now().strftime("%Y-%m-%d"),
-                f"{match['home']} vs {match['away']}",
-                pick,
-                odds,
-                prob,
-                edge,
-                stake,
-                "PENDIENTE",
-                0,
-                sport,
-                match.get("league","N/A"),
-                odds,
-                datetime.utcnow().isoformat()
-            ])
+        with open(self.history_file,newline="",encoding="utf-8") as f:
 
+            for row in csv.DictReader(f):
+
+                if row["Resultado"] in ["GANADA","PERDIDA"]:
+
+                    stake=float(row["Stake"])
+                    profit=float(row["Ganancia_Neta"])
+
+                    total_stake+=stake
+                    total_profit+=profit
+
+                    if profit>0:
+                        wins+=1
+                    else:
+                        losses+=1
+
+        if total_stake==0:
+            return
+
+        roi=(total_profit/total_stake)*100
+
+        msg=f"""
+📊 REPORTE SEMANAL SPORTIA
+
+Picks: {wins+losses}
+Wins: {wins}
+Losses: {losses}
+
+Stake Total: {total_stake:.2f}u
+Profit: {total_profit:.2f}u
+
+ROI: {roi:.2f}%
+"""
+
+        self._send_telegram(msg)
 
     # =====================================================
     # RUN
     # =====================================================
 
-    def wake_backend(self):
-
-        print("☕ Despertando backend...")
-
-        try:
-            self.session.get(
-                f"{self.api_base}/matches/upcoming?sport=soccer",
-                timeout=60
-            )
-
-        except:
-            print("Backend despertando")
-
     def run(self):
 
-        self._send_telegram("🤖 Sportia V9.5 Syndicate Scanner ONLINE")
-
-        self.wake_backend()
+        self._send_telegram("🤖 SPORTIA FUSION BOT ACTIVO")
 
         while True:
 
             self.scan_all()
+            self.resolve_finished_matches()
 
-            self.check_results()
+            now=datetime.utcnow()
+
+            if now.weekday()==6 and now.hour==23:
+                if self.last_report_day!=now.date():
+                    self.weekly_report()
+                    self.last_report_day=now.date()
 
             time.sleep(900)
+
 
 if __name__=="__main__":
     SportiaSecureScanner().run()
