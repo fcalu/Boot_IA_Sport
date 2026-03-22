@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import psycopg2
+import psycopg
 load_dotenv()
 
 
@@ -36,9 +36,9 @@ class SportiaSecureScanner:
         # =========================
         # DB (Railway PostgreSQL)
         # =========================
-        self.conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        self.conn = psycopg.connect(os.getenv("DATABASE_URL"))
         self.cursor = self.conn.cursor()
-
+        self.conn.autocommit = True
         self._init_db()
 
         self.stake_base = 10
