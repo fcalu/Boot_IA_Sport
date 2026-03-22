@@ -44,7 +44,7 @@ class SportiaSecureScanner:
         self.stake_base = 10
         self.kelly_multiplier = 0.25
 
-        self.history_file = "auditoria_ganancias.csv"
+        self.history_file = "auditoria_ganancias.csv"    
 
         self.sent_ids = set()
 
